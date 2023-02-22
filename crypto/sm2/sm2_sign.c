@@ -46,11 +46,13 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-#include <openssl/ec.h>
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/sm2.h>
 #include <string.h>
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <openssl/sm2.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <openssl/obj_mac.h>
 #include "../ec/ec_lcl.h"
 
@@ -69,12 +71,13 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 
 	if (!(ctx = BN_CTX_secure_new()))
 	{
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (!(ecdsa_sig = ECDSA_SIG_new()))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	ecdsa_sig->r = BN_new();
@@ -94,41 +97,42 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1)))
 	{
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	/*曲线基点*/
 	if (!(k_G = EC_POINT_new(group)))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	/*大数 1 */
 	if (!(BN_one(bn_one)))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/*大数私钥*/
 	if (!(bn_d = EC_KEY_get0_private_key(ec_key)))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_EC_LIB);
 		goto end;
 	}
 
 	/*大数摘要*/
 	if (!(BN_bin2bn(dgst, dgst_len, bn_e)))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/*曲线的阶*/
 	if (!(bn_order = EC_GROUP_get0_order(group)))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_EC_LIB);
 		goto end;
 	}
 
@@ -137,7 +141,7 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 		/*随机大数K*/
 		if (!(BN_rand_range(bn_k, bn_order)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (BN_is_zero(bn_k))
@@ -148,21 +152,21 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 		/*( x , y ) = kG */
 		if (!(EC_POINT_mul(group, k_G, bn_k, NULL, NULL, ctx)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_EC_LIB);
 			goto end;
 		}
 
 		/* 获取大数x */
 		if (!(EC_POINT_get_affine_coordinates_GFp(group, k_G, bn_x, bn_tmp, ctx)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_EC_LIB);
 			goto end;
 		}
 
 		/*计算 r = ( e + x ) mod n ; 获得 sig->r*/
 		if (!(BN_mod_add(bn_r, bn_e, bn_x, bn_order, ctx)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (BN_is_zero(bn_r)) /* check if r==0 ? */
@@ -173,7 +177,7 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 		/*计算 ( r + k )*/
 		if (!(BN_add(bn_tmp, bn_r, bn_k)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!(BN_cmp(bn_tmp, bn_order))) /* check if (r + k) == n ? */
@@ -184,39 +188,39 @@ ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgst_len, EC_KEY *ec_ke
 		/* 计算 s = (1 + d )~-1 * ( k - r *  d ) mod n , 获得sig->s */
 		if (!(BN_add(bn_tmp, bn_one, bn_d))) /* compute (1 + d) */
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!(BN_mod_inverse(bn_sum_inv, bn_tmp, bn_order, ctx))) /* compute (1 + d)~-1 mod n */
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!(BN_mul(bn_tmp, bn_r, bn_d, ctx))) /* compute (r * d ) */
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!(BN_mod_sub(bn_dif, bn_k, bn_tmp, bn_order, ctx))) /*compute ( k - r * d ) mod n */
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!(BN_mod_mul(bn_s, bn_sum_inv, bn_dif, bn_order, ctx)))
 		{
-			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 			goto end;
 		}
 	} while (BN_is_zero(bn_s)); /* check if s == 0 ? */
 
 	if (!BN_copy(ecdsa_sig->r, bn_r))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!BN_copy(ecdsa_sig->s, bn_s))
 	{
-		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN_EX, ERR_R_BN_LIB);
 		goto end;
 	}
 	ok = 1;
@@ -259,12 +263,16 @@ int SM2_do_sign(const unsigned char *dgst,
 					 sm2_sig->r_coordinate,
 					 sizeof(sm2_sig->r_coordinate)) != sizeof(sm2_sig->r_coordinate))
 	{
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		ret = -1;
 		goto end;
 	}
 	if (BN_bn2binpad(s->s,
 					 sm2_sig->s_coordinate,
 					 sizeof(sm2_sig->s_coordinate)) != sizeof(sm2_sig->s_coordinate))
 	{
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		ret = -1;
 		goto end;
 	}
 	ret = 1;
@@ -308,20 +316,20 @@ int SM2_do_verify(const unsigned char *dgst,
 
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1)))
 	{
-		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		ret = -1;
 		goto end;
 	}
 
 	if (!(ec_pt1 = EC_POINT_new(group)))
 	{
-		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		ret = -1;
 		goto end;
 	}
 	if (!(ec_pt2 = EC_POINT_new(group)))
 	{
-		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		ret = -1;
 		goto end;
 	}
@@ -333,6 +341,7 @@ int SM2_do_verify(const unsigned char *dgst,
 		ret = -1;
 		goto end;
 	}
+	
 	/*大数签名*/
 	if (!(BN_bin2bn(sm2_sig->r_coordinate, sizeof(sm2_sig->r_coordinate), bn_r)))
 	{
@@ -354,7 +363,7 @@ int SM2_do_verify(const unsigned char *dgst,
 		ret = -1;
 		goto end;
 	}
-
+	
 	if ((BN_is_zero(bn_r)) || (BN_cmp(bn_r, bn_order) != (-1)))
 	{
 		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
@@ -388,13 +397,6 @@ int SM2_do_verify(const unsigned char *dgst,
 		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		ret = -1;
 		goto end;
-	}
-
-	if (EC_POINT_is_on_curve(group, ec_pub_key_pt, ctx) != 1)
-	{
-		ECerr(EC_F_EC_POINT_SET_AFFINE_COORDINATES_GFP,
-			  EC_R_POINT_IS_NOT_ON_CURVE);
-		return 0;
 	}
 
 	if (!(EC_POINT_mul(group, ec_pt2, NULL, ec_pub_key_pt, bn_t, ctx)))
@@ -468,6 +470,8 @@ int SM2_sign(int type, const unsigned char *dgst, int dgst_len,
 	{
 		return 0;
 	}
+	
+	RAND_seed(dgst, dgst_len);
 
 	if (!(s = SM2_do_sign_ex(dgst, dgst_len, ec_key)))
 	{
@@ -484,7 +488,7 @@ int SM2_sign(int type, const unsigned char *dgst, int dgst_len,
 int SM2_verify(int type, const unsigned char *dgst, int dgst_len,
 			   const unsigned char *sig, int siglen, EC_KEY *ec_key)
 {
-	ECDSA_SIG *s;
+	ECDSA_SIG *s = NULL;
 	const unsigned char *p = sig;
 	unsigned char *der = NULL;
 	int derlen = -1;
@@ -531,7 +535,10 @@ err:
 		OPENSSL_cleanse(der, derlen);
 		OPENSSL_free(der);
 	}
-
-	ECDSA_SIG_free(s);
+	if(s != NULL)
+	{
+		ECDSA_SIG_free(s);
+	}	
+	
 	return ret;
 }

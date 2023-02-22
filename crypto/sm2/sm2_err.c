@@ -37,7 +37,7 @@ static ERR_STRING_DATA SM2_str_functs[] = {
     {ERR_FUNC(SM2_F_SM2_DO_SIGN), "SM2_do_sign"},
     {ERR_FUNC(SM2_F_SM2_DO_VERIFY), "SM2_do_verify"},
     {ERR_FUNC(SM2_F_SM2_ENCRYPT), "SM2_encrypt"},
-    {ERR_FUNC(SM2_F_SM2_SIGN_SETUP), "SM2_sign_setup"},
+    {ERR_FUNC(SM2_F_SM2_DO_SIGN_EX), "SM2_do_sign_ex"},
     {0, NULL}
 };
 

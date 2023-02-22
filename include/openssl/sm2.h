@@ -263,7 +263,7 @@ extern "C"
 #define SM2_F_SM2_DO_SIGN 104
 #define SM2_F_SM2_DO_VERIFY 105
 #define SM2_F_SM2_ENCRYPT 103
-#define SM2_F_SM2_SIGN_SETUP 106
+#define SM2_F_SM2_DO_SIGN_EX 106
 
 /* Reason codes. */
 #define SM2_R_BAD_SIGNATURE 110
