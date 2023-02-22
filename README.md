@@ -1,8 +1,6 @@
 ## About GmSSL
-基于GmSSL1.0[1]做出改进，按照标准文档[2]修改了SM2签名算法。
+基于GmSSL1.0做出改进，按照标准文档`GMT 0003.2-2012 SM2椭圆曲线公钥密码算法第2部分：数字签名算法.pdf`修改了SM2签名算法。
 
-[1]:(https://github.com/guanzhi/GmSSL/tree/GmSSL-v1)
-[2]:(./GM-Standards/GMT正式标准/GMT 0003.2-2012 SM2椭圆曲线公钥密码算法第2部分：数字签名算法.pdf)
 ## Quick Start
 
  ### Linux平台安装:
