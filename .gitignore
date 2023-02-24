@@ -9,7 +9,6 @@
 /*.pc
 /rehash.time
 /inc.*
-/makefile.*
 /out.*
 /tmp.*
 /configdata.pm
@@ -211,7 +210,6 @@ apps/gmca/.ca
 /engines/e_sdf*
 /engines/sdf
 /engines/skf
-
 
 /*.sh
 

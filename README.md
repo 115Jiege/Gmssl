@@ -6,16 +6,10 @@
  ### Linux平台安装:
 
  ```sh
- $ ./config --prefix=/usr/local/gmssl --openssldir=/usr/local/gmssl no-shared
- $ make
- ```
-
-配置环境变量
-
- ```sh
-vim ~/.bashrc
-export PATH=$PATH:/usr/local/gmssl/bin
-source ~/.bashrc
+ ./config --prefix=/usr/local --openssldir=/usr/local
+ #修改Makefile第36行为：INSTALL_SHLIB_INFO="libcrypto.so.$(SHLIB_MAJOR).$(SHLIB_MINOR);libgmcrypto.so" "libssl.so.$(SHLIB_MAJOR).$(SHLIB_MINOR);libssl.so"
+make && make install
+ldconfig
  ```
 
 查看GmSSL版本
