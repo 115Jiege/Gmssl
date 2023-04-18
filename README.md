@@ -30,3 +30,19 @@ perl Configure VC-WIN32
 nmake 
 nmake install
  ```
+ 
+### Android版安装
+环境:ubuntu 20.04
+选择需求版本安装
+```sh
+cd build-android
+chmod a+x build-androidx86.sh
+./build-androidx86.sh
+chmod a+x build-androidx86_64.sh
+./build-androidx86_64.sh
+chmod a+x build-armv8.sh
+./build-armv8.sh
+chmod a+x build-armv7.sh
+./build-armv7.sh
+readelf -h ../libcrypto.so.1.1 #查看生成的so文件的系统架构等信息
+```
