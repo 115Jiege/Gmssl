@@ -81,6 +81,18 @@ void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out,
 	const sms4_key_t *key, int enc);
 void sms4_cbc_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_key_t *key, unsigned char *iv, int enc);
+
+void sm4_cbc_encrypt(const sms4_key_t *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out);
+void sm4_cbc_decrypt(const sms4_key_t *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out);	
+int sm4_cbc_padding_encrypt(const sms4_key_t *key, const uint8_t iv[16],
+							const uint8_t *in, size_t inlen,
+							uint8_t *out, size_t *outlen);
+int sm4_cbc_padding_decrypt(const sms4_key_t *key, const uint8_t iv[16],
+							const uint8_t *in, size_t inlen,
+							uint8_t *out, size_t *outlen);
+	
 void sms4_cfb128_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_key_t *key, unsigned char *iv, int *num, int enc);
 void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,

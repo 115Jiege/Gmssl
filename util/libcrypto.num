@@ -4731,3 +4731,7 @@ ECIES_CIPHERTEXT_VALUE_set_ECCCipher    4582	1_1_0d	EXIST::FUNCTION:EC,ECIES,GMA
 i2o_SM2CiphertextValue                  4583	1_1_0d	EXIST::FUNCTION:SM2
 o2i_SM2CiphertextValue                  4584	1_1_0d	EXIST::FUNCTION:SM2
 __attribute__                           4585	1_1_0d	EXIST::FUNCTION:EC,SM2,SMS4
+sm4_cbc_encrypt                         4586    1_1_0d	EXIST::FUNCTION:SMS4
+sm4_cbc_decrypt                         4587    1_1_0d	EXIST::FUNCTION:SMS4
+sm4_cbc_padding_encrypt                 4588    1_1_0d	EXIST::FUNCTION:SMS4
+sm4_cbc_padding_decrypt                 4589    1_1_0d	EXIST::FUNCTION:SMS4
